@@ -80,6 +80,7 @@ services:
       - LOG_LEVEL=WARN
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana.ini:/etc/grafana/grafana.ini
     depends_on:
       - prometheus
 
