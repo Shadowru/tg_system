@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s     # Как часто собирать метрики
+  evaluation_interval: 15s # Как часто вычислять правила (alerts)
+
+scrape_configs:
+  # 1. Мониторинг здоровья самого Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 2. Мониторинг Backend API (RPS, Latency, Errors)
+  - job_name: 'backend'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    static_configs:
+      # 'backend' - это имя сервиса из docker-compose
+      - targets: ['backend:8000']
+
+  # 3. Мониторинг Redis (Длина очередей задач и результатов)
+  # Это критически важно для понимания, справляются ли воркеры
+  - job_name: 'redis_exporter'
+    static_configs:
+      # 'redis-exporter' - имя сервиса, который мы добавим ниже
+      - targets: ['redis-exporter:9121']

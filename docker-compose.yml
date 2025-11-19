@@ -40,6 +40,15 @@ services:
     depends_on:
       - redis
 
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+
   # --- Monitoring Layer ---
   prometheus:
     image: prom/prometheus
@@ -54,6 +63,7 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+      - redis-exporter
 
 volumes:
   pg_data:

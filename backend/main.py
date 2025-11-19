@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import init_db, get_session
 from models import Account, Channel, Message
 import redis.asyncio as redis
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="TG Parser System")
 redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis"))
@@ -15,8 +16,8 @@ redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis"))
 
 @app.on_event("startup")
 async def on_startup():
+    Instrumentator().instrument(app).expose(app)
     await init_db()
-    # Запуск фоновых задач
     asyncio.create_task(dispatcher_loop())
     asyncio.create_task(ingestor_loop())
 
@@ -34,27 +35,22 @@ async def add_channel(channel: Channel, session: AsyncSession = Depends(get_sess
 
 @app.get("/stats/")
 async def get_stats(session: AsyncSession = Depends(get_session)):
-    # Простая статистика
     msgs = await session.execute(select(Message))
     return {"total_messages": len(msgs.scalars().all())}
 
-# --- DISPATCHER (Раздает задачи) ---
+# --- DISPATCHER ---
 
 async def dispatcher_loop():
-    """Ищет каналы для парсинга и свободные аккаунты"""
-    async for db in get_session(): # Получаем сессию вручную
+    async for db in get_session():
         while True:
             try:
-                # 1. Найти свободный аккаунт
                 acc_res = await db.execute(select(Account).where(Account.is_active == True))
                 account = acc_res.scalars().first()
                 
-                # 2. Найти канал, который нужно парсить
                 chan_res = await db.execute(select(Channel).where(Channel.status == "PENDING"))
                 channel = chan_res.scalars().first()
 
                 if account and channel:
-                    # Формируем задачу
                     task = {
                         "type": "history",
                         "channel_username": channel.username,
@@ -65,10 +61,8 @@ async def dispatcher_loop():
                         "proxy": account.proxy_url
                     }
                     
-                    # Отправляем в очередь Redis
                     await redis_client.lpush("tasks_queue", json.dumps(task))
                     
-                    # Обновляем статус канала
                     channel.status = "PARSING"
                     db.add(channel)
                     await db.commit()
@@ -77,23 +71,20 @@ async def dispatcher_loop():
             except Exception as e:
                 print(f"[Dispatcher Error] {e}")
             
-            await asyncio.sleep(5) # Пауза между проверками
+            await asyncio.sleep(5)
 
-# --- INGESTOR (Сохраняет данные) ---
+# --- INGESTOR ---
 
 async def ingestor_loop():
-    """Читает результаты из Redis и пишет в Postgres"""
     async for db in get_session():
         while True:
             try:
-                # Блокирующее чтение из очереди результатов (ждем 1 сек)
                 data = await redis_client.brpop("results_queue", timeout=1)
                 if data:
                     _, raw_json = data
                     result = json.loads(raw_json)
                     
                     if result.get("status") == "done":
-                        # Обновляем статус канала
                         chan_res = await db.execute(select(Channel).where(Channel.username == result["channel"]))
                         channel = chan_res.scalars().first()
                         if channel:
@@ -102,7 +93,6 @@ async def ingestor_loop():
                             db.add(channel)
                     
                     elif result.get("type") == "message":
-                        # Сохраняем сообщение
                         msg = Message(
                             channel_username=result["channel"],
                             telegram_id=result["id"],

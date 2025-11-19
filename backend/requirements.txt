@@ -3,3 +3,4 @@ uvicorn
 sqlmodel
 asyncpg
 redis
+prometheus-fastapi-instrumentator
