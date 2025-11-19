@@ -34,7 +34,7 @@ services:
   worker:
     build: ./worker
     deploy:
-      replicas: 2 # Запускаем сразу 2 воркера
+      replicas: 2
     environment:
       - BROKER_URL=redis://redis
     depends_on:
@@ -44,7 +44,7 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Нужно создать конфиг
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
