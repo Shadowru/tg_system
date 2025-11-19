@@ -1,9 +1,10 @@
 version: '3.8'
 
 services:
-  # --- Data Layer ---
+  # --- Database ---
   postgres:
     image: postgres:15-alpine
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -11,69 +12,71 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
 
-  # --- Message Broker ---
+  # --- Message Broker (Redis) ---
   redis:
     image: redis:alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "${REDIS_PORT}:6379"
 
-  # --- Application Layer ---
+  # --- Redis Exporter ---
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    environment:
+      - REDIS_ADDR=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
+    depends_on:
+      - redis
+
+  # --- Backend API ---
   backend:
     build: ./backend
+    restart: always
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${BROKER_URL}
     depends_on:
       - postgres
       - redis
 
-  # --- Worker Layer ---
+  # --- Worker Nodes ---
   worker:
     build: ./worker
+    restart: always
     deploy:
       replicas: 2
-    profiles:
-      - worker
     environment:
-      - BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}
+      - BROKER_URL=${BROKER_URL}
     depends_on:
       - redis
 
-  # --- Redis Exporter (Monitoring) ---
-  redis-exporter:
-    image: oliver006/redis_exporter:latest
-    environment:
-      - REDIS_ADDR=redis://${REDIS_HOST}:${REDIS_PORT}
-    profiles:
-      - monitoring
-    ports:
-      - "9121:9121"
-    depends_on:
-      - redis
-
-  # --- Monitoring Layer ---
+  # --- Monitoring (Prometheus) ---
   prometheus:
     image: prom/prometheus
-    profiles:
-      - monitoring
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.config.file=/etc/prometheus/web.yml' 
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_web.yml:/etc/prometheus/web.yml
     ports:
       - "9090:9090"
 
+  # --- Visualization (Grafana) ---
   grafana:
     image: grafana/grafana
-    profiles:
-      - monitoring
     ports:
       - "3000:3000"
+    environment:
+      # Задаем пароль админа
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     depends_on:
       - prometheus
-      - redis-exporter
 
 volumes:
   pg_data:
