@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    basicAuth: true
+    basicAuthUser: ${PROMETHEUS_USER}
+    # Grafana умеет читать переменные окружения в конфигах provisioning
+    secureJsonData:
+      basicAuthPassword: ${PROMETHEUS_PASSWORD}

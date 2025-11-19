@@ -75,6 +75,10 @@ services:
       # Задаем пароль админа
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - PROMETHEUS_USER=${PROMETHEUS_USER}
+      - PROMETHEUS_PASSWORD=${PROMETHEUS_PASSWORD}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
 
