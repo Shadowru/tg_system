@@ -8,7 +8,6 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: tg_db
-    profiles:
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -16,7 +15,6 @@ services:
 
   redis:
     image: redis:alpine
-    profiles:
     ports:
       - "6379:6379"
 
@@ -25,7 +23,6 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-    profiles:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:pass@postgres/tg_db
       - REDIS_URL=redis://redis
@@ -39,6 +36,7 @@ services:
     deploy:
       replicas: 2
     profiles:
+      - worker
     environment:
       - BROKER_URL=redis://redis
     depends_on:
