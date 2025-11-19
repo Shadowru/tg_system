@@ -13,10 +13,11 @@ app = FastAPI(title="TG Parser System")
 redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis"))
 
 # --- API ENDPOINTS ---
+#Instrumentator().instrument(app).expose(app)
+
 
 @app.on_event("startup")
 async def on_startup():
-    #Instrumentator().instrument(app).expose(app)
     await init_db()
     asyncio.create_task(dispatcher_loop())
     asyncio.create_task(ingestor_loop())
