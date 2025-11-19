@@ -5,7 +5,10 @@ import redis.asyncio as redis
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-REDIS_URL = os.getenv("BROKER_URL", "redis://redis")
+REDIS_URL = os.environ.get("BROKER_URL")
+if not REDIS_URL:
+    raise ValueError("BROKER_URL is not set!")
+
 WORKER_ID = os.getenv("HOSTNAME", "worker-1")
 
 async def process_task(task, redis_conn):

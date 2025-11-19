@@ -5,18 +5,19 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: tg_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
+  # --- Message Broker ---
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
 
   # --- Application Layer ---
   backend:
@@ -24,8 +25,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://user:pass@postgres/tg_db
-      - REDIS_URL=redis://redis
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
     depends_on:
       - postgres
       - redis
@@ -38,14 +39,15 @@ services:
     profiles:
       - worker
     environment:
-      - BROKER_URL=redis://redis
+      - BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}
     depends_on:
       - redis
 
+  # --- Redis Exporter (Monitoring) ---
   redis-exporter:
     image: oliver006/redis_exporter:latest
     environment:
-      - REDIS_ADDR=redis://redis:6379
+      - REDIS_ADDR=redis://${REDIS_HOST}:${REDIS_PORT}
     profiles:
       - monitoring
     ports:

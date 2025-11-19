@@ -16,7 +16,10 @@ app = FastAPI(title="TG Parser System")
 
 templates = Jinja2Templates(directory="templates")
 
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis"))
+redis_url = os.environ.get("REDIS_URL")
+if not redis_url:
+    raise ValueError("REDIS_URL is not set!")
+
 
 # --- API ENDPOINTS ---
 #Instrumentator().instrument(app).expose(app)
