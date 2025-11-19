@@ -40,32 +40,43 @@
                 </button>
             </div>
             <div class="card-body p-0">
-                <table class="table table-striped mb-0">
+                <table class="table table-striped mb-0 align-middle"> <!-- align-middle для красоты -->
                     <thead>
                         <tr>
                             <th>Username</th>
                             <th>Статус</th>
                             <th>Last ID</th>
+                            <th style="width: 50px;"></th> <!-- Пустой заголовок для кнопки -->
                         </tr>
                     </thead>
                     <tbody>
                         {% for channel in channels %}
                         <tr>
                             <td>
-                                <a href="https://t.me/{{ channel.username }}" target="_blank">@{{ channel.username }}</a>
+                                <a href="https://t.me/{{ channel.username }}" target="_blank"
+                                    class="text-decoration-none">
+                                    @{{ channel.username }}
+                                </a>
                             </td>
                             <td>
                                 {% if channel.status == 'PENDING' %}
-                                    <span class="badge bg-secondary">Ожидает</span>
+                                <span class="badge bg-secondary">Ожидает</span>
                                 {% elif channel.status == 'PARSING' %}
-                                    <span class="badge bg-warning text-dark">В работе</span>
+                                <span class="badge bg-warning text-dark">В работе</span>
                                 {% elif channel.status == 'DONE' %}
-                                    <span class="badge bg-success">Готово</span>
+                                <span class="badge bg-success">Готово</span>
                                 {% else %}
-                                    <span class="badge bg-danger">{{ channel.status }}</span>
+                                <span class="badge bg-danger">{{ channel.status }}</span>
                                 {% endif %}
                             </td>
                             <td>{{ channel.last_parsed_id }}</td>
+                            <td>
+                                <!-- КНОПКА УДАЛЕНИЯ КАНАЛА -->
+                                <button class="btn btn-sm btn-outline-danger border-0"
+                                    onclick="deleteItem('/channels/{{ channel.id }}')" title="Удалить канал">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -88,15 +99,24 @@
                     {% for acc in accounts %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            <i class="bi bi-telephone"></i> {{ acc.phone }}
-                            <br>
+                            <div class="fw-bold">
+                                <i class="bi bi-telephone"></i> {{ acc.phone }}
+                            </div>
                             <small class="text-muted">ID: {{ acc.api_id }}</small>
+
+                            <!-- Статус аккаунта -->
+                            {% if acc.is_active %}
+                            <span class="badge bg-success ms-2" style="font-size: 0.7em;">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger ms-2" style="font-size: 0.7em;">Banned</span>
+                            {% endif %}
                         </div>
-                        {% if acc.is_active %}
-                            <span class="badge bg-success rounded-pill">Active</span>
-                        {% else %}
-                            <span class="badge bg-danger rounded-pill">Banned</span>
-                        {% endif %}
+
+                        <!-- КНОПКА УДАЛЕНИЯ АККАУНТА -->
+                        <button class="btn btn-sm btn-outline-danger border-0"
+                            onclick="deleteItem('/accounts/{{ acc.id }}')" title="Удалить аккаунт">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </li>
                     {% endfor %}
                 </ul>
@@ -122,7 +142,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="sendJsonForm('channelForm', '/channels/')">Добавить</button>
+                <button type="button" class="btn btn-primary"
+                    onclick="sendJsonForm('channelForm', '/channels/')">Добавить</button>
             </div>
         </div>
     </div>
@@ -159,12 +180,14 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Proxy URL (опционально)</label>
-                        <input type="text" class="form-control" name="proxy_url" placeholder="socks5://user:pass@host:port">
+                        <input type="text" class="form-control" name="proxy_url"
+                            placeholder="socks5://user:pass@host:port">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="sendJsonForm('accountForm', '/accounts/')">Сохранить</button>
+                <button type="button" class="btn btn-primary"
+                    onclick="sendJsonForm('accountForm', '/accounts/')">Сохранить</button>
             </div>
         </div>
     </div>

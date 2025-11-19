@@ -66,6 +66,26 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     msgs = await session.execute(select(Message))
     return {"total_messages": len(msgs.scalars().all())}
 
+@app.delete("/channels/{channel_id}")
+async def delete_channel(channel_id: int, session: AsyncSession = Depends(get_session)):
+    channel = await session.get(Channel, channel_id)
+    if not channel:
+        return {"error": "Channel not found"}
+    
+    await session.delete(channel)
+    await session.commit()
+    return {"status": "deleted", "id": channel_id}
+
+@app.delete("/accounts/{account_id}")
+async def delete_account(account_id: int, session: AsyncSession = Depends(get_session)):
+    account = await session.get(Account, account_id)
+    if not account:
+        return {"error": "Account not found"}
+    
+    await session.delete(account)
+    await session.commit()
+    return {"status": "deleted", "id": account_id}      
+
 # --- DISPATCHER ---
 
 async def dispatcher_loop():
@@ -132,4 +152,4 @@ async def ingestor_loop():
                     await db.commit()
             except Exception as e:
                 print(f"[Ingestor Error] {e}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(1)          
