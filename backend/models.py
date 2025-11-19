@@ -13,7 +13,7 @@ class Account(SQLModel, table=True):
 
 class Channel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(unique=True) # @username или ссылка
+    username: str = Field(unique=True)
     status: str = "PENDING" # PENDING, PARSING, DONE, ERROR
     last_parsed_id: int = 0
 
@@ -23,5 +23,3 @@ class Message(SQLModel, table=True):
     telegram_id: int
     text: Optional[str] = None
     date: datetime
-    # Составной уникальный ключ (channel + msg_id) нужно делать через SA args, 
-    # но для MVP опустим.
