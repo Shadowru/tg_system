@@ -30,13 +30,13 @@ if not REDIS_URL:
 # Создаем клиент. decode_responses=True позволяет получать строки вместо байтов
 redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
+# Запуск метрик Prometheus
+instrumentator = Instrumentator().instrument(app).expose(app)
+
 # --- СОБЫТИЯ ЗАПУСКА ---
 
 @app.on_event("startup")
 async def startup():
-    # Запуск метрик Prometheus
-    Instrumentator().instrument(app).expose(app)
-    
     # Инициализация БД
     await init_db()
     
