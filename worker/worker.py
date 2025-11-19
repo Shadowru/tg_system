@@ -11,12 +11,10 @@ WORKER_ID = os.getenv("HOSTNAME", "worker-1")
 async def process_task(task, redis_conn):
     print(f"[{WORKER_ID}] Processing {task['channel_username']}")
     
-    # Инициализация клиента из строки сессии
     client = TelegramClient(
         StringSession(task['session']),
         task['api_id'],
         task['api_hash'],
-        # proxy=... (добавить логику парсинга прокси строки)
     )
 
     try:
@@ -29,9 +27,7 @@ async def process_task(task, redis_conn):
         min_id = task.get('min_id', 0)
         max_parsed_id = min_id
 
-        # Парсинг истории
         async for msg in client.iter_messages(channel, limit=50, min_id=min_id):
-            # Отправка сообщения в очередь результатов
             msg_data = {
                 "type": "message",
                 "channel": channel,
@@ -44,7 +40,6 @@ async def process_task(task, redis_conn):
             if msg.id > max_parsed_id:
                 max_parsed_id = msg.id
 
-        # Отчет о завершении
         done_msg = {
             "status": "done",
             "channel": channel,
@@ -63,7 +58,6 @@ async def main():
     print(f"[{WORKER_ID}] Started. Waiting for tasks...")
     
     while True:
-        # Блокирующее ожидание задачи
         data = await r.brpop("tasks_queue", timeout=5)
         if data:
             _, raw_task = data

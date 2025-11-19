@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: tg_db
+    profiles:
+      - backend
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -15,6 +17,8 @@ services:
 
   redis:
     image: redis:alpine
+    profiles:
+      - backend
     ports:
       - "6379:6379"
 
@@ -23,6 +27,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+    profiles:
+      - backend
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:pass@postgres/tg_db
       - REDIS_URL=redis://redis
@@ -35,6 +41,8 @@ services:
     build: ./worker
     deploy:
       replicas: 2
+    profiles:
+      - worker
     environment:
       - BROKER_URL=redis://redis
     depends_on:
@@ -44,6 +52,8 @@ services:
     image: oliver006/redis_exporter:latest
     environment:
       - REDIS_ADDR=redis://redis:6379
+    profiles:
+      - monitoring
     ports:
       - "9121:9121"
     depends_on:
@@ -52,6 +62,8 @@ services:
   # --- Monitoring Layer ---
   prometheus:
     image: prom/prometheus
+    profiles:
+      - monitoring
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -59,6 +71,8 @@ services:
 
   grafana:
     image: grafana/grafana
+    profiles:
+      - monitoring
     ports:
       - "3000:3000"
     depends_on:

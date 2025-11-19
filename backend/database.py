@@ -9,7 +9,6 @@ engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 
 async def init_db():
     async with engine.begin() as conn:
-        # В продакшене используйте Alembic для миграций
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncSession:
