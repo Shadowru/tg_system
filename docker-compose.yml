@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # --- Data Layer ---
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: tg_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # --- Application Layer ---
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:pass@postgres/tg_db
+      - REDIS_URL=redis://redis
+    depends_on:
+      - postgres
+      - redis
+
+  # --- Worker Layer ---
+  worker:
+    build: ./worker
+    deploy:
+      replicas: 2 # Запускаем сразу 2 воркера
+    environment:
+      - BROKER_URL=redis://redis
+    depends_on:
+      - redis
+
+  # --- Monitoring Layer ---
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Нужно создать конфиг
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  pg_data:
