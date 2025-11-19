@@ -1,7 +1,10 @@
 import asyncio
 import json
 import os
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from sqlmodel import select, func
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import init_db, get_session
@@ -10,6 +13,9 @@ import redis.asyncio as redis
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="TG Parser System")
+
+templates = Jinja2Templates(directory="templates")
+
 redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis"))
 
 # --- API ENDPOINTS ---
@@ -21,6 +27,27 @@ async def on_startup():
     await init_db()
     asyncio.create_task(dispatcher_loop())
     asyncio.create_task(ingestor_loop())
+
+# --- WEB UI ROUTE ---
+
+@app.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request, session: AsyncSession = Depends(get_session)):
+    
+    channels_res = await session.execute(select(Channel).order_by(Channel.id.desc()))
+    channels = channels_res.scalars().all()
+    
+    accounts_res = await session.execute(select(Account))
+    accounts = accounts_res.scalars().all()
+    
+    count_res = await session.execute(select(func.count()).select_from(Message))
+    total_messages = count_res.scalar()
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "channels": channels,
+        "accounts": accounts,
+        "total_messages": total_messages
+    })
 
 @app.post("/accounts/")
 async def add_account(account: Account, session: AsyncSession = Depends(get_session)):

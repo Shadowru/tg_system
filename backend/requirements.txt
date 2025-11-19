@@ -4,3 +4,5 @@ sqlmodel
 asyncpg
 redis
 prometheus-fastapi-instrumentator
+jinja2           
+python-multipart

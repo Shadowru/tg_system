@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Всего сообщений</h5>
+                <h2 class="display-6">{{ total_messages }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Каналов в работе</h5>
+                <h2 class="display-6">{{ channels|selectattr("status", "equalto", "PARSING")|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Активных аккаунтов</h5>
+                <h2 class="display-6">{{ accounts|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Колонка Каналов -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Каналы</h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addChannelModal">
+                    <i class="bi bi-plus-lg"></i> Добавить
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Статус</th>
+                            <th>Last ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for channel in channels %}
+                        <tr>
+                            <td>
+                                <a href="https://t.me/{{ channel.username }}" target="_blank">@{{ channel.username }}</a>
+                            </td>
+                            <td>
+                                {% if channel.status == 'PENDING' %}
+                                    <span class="badge bg-secondary">Ожидает</span>
+                                {% elif channel.status == 'PARSING' %}
+                                    <span class="badge bg-warning text-dark">В работе</span>
+                                {% elif channel.status == 'DONE' %}
+                                    <span class="badge bg-success">Готово</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ channel.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ channel.last_parsed_id }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Колонка Аккаунтов -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Аккаунты</h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+                    <i class="bi bi-plus-lg"></i> Добавить
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for acc in accounts %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-telephone"></i> {{ acc.phone }}
+                            <br>
+                            <small class="text-muted">ID: {{ acc.api_id }}</small>
+                        </div>
+                        {% if acc.is_active %}
+                            <span class="badge bg-success rounded-pill">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger rounded-pill">Banned</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно: Добавить Канал -->
+<div class="modal fade" id="addChannelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить канал</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="channelForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username (без @)</label>
+                        <input type="text" class="form-control" name="username" required placeholder="python_scripts">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="sendJsonForm('channelForm', '/channels/')">Добавить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно: Добавить Аккаунт -->
+<div class="modal fade" id="addAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить аккаунт</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="accountForm">
+                    <div class="mb-3">
+                        <label class="form-label">Номер телефона</label>
+                        <input type="text" class="form-control" name="phone" placeholder="+79990000000" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">API ID</label>
+                            <input type="number" class="form-control" name="api_id" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">API Hash</label>
+                            <input type="text" class="form-control" name="api_hash" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Session String</label>
+                        <textarea class="form-control" name="session_string" rows="3" required></textarea>
+                        <div class="form-text">Сгенерируйте строку сессии локально через Telethon.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proxy URL (опционально)</label>
+                        <input type="text" class="form-control" name="proxy_url" placeholder="socks5://user:pass@host:port">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="sendJsonForm('accountForm', '/accounts/')">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
